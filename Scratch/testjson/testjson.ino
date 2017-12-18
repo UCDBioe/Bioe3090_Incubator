@@ -29,6 +29,7 @@ void loop () {
 
   // Write out the message for debugging.
   root.printTo(Serial);
+  Serial.println();
 
   delay(1000);
   // Turn the JSON structure into a string for sending over the MQTT topic.

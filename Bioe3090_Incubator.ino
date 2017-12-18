@@ -8,6 +8,8 @@
 // DS18B20 temperature sensor libraries
 #include <OneWire.h>
 #include <DallasTemperature.h>
+// JSON Library
+#include <ArduinoJson.h>
 
 // Pin Values
 // Data wire is plugged into port 2 on the Arduino
@@ -38,6 +40,10 @@ DallasTemperature sensors(&oneWire);
 // arrays to hold device address
 DeviceAddress insideThermometer;
 
+// Create JSON object.
+StaticJsonBuffer<200> jsonBuffer;
+JsonObject& jsonRoot = jsonBuffer.createObject();
+bool jsonFlag = true; 
 
 class TimeCheck{
 	unsigned long timeNow, timePrevious, timeTrigger;
@@ -151,27 +157,37 @@ void	assign_sensors(){
 
 
 // function to print the temperature for a device
-double print_temperature(DeviceAddress deviceAddress)
+double print_temperature(DeviceAddress deviceAddress, bool jsonFlag)
 {
-  // request to all devices on the bus
-  Serial.print("Requesting temperatures...");
-  sensors.requestTemperatures(); // Send the command to get temperatures
-  Serial.println("DONE");
+  if (!jsonFlag){
+    // request to all devices on the bus
+    Serial.print("Requesting temperatures...");
+    sensors.requestTemperatures(); // Send the command to get temperatures
+    Serial.println("DONE");
 
-  // method 1 - slower
-  //Serial.print("Temp C: ");
-  //Serial.print(sensors.getTempC(deviceAddress));
-  //Serial.print(" Temp F: ");
-  //Serial.print(sensors.getTempF(deviceAddress)); // Makes a second call to getTempC and then converts to Fahrenheit
+    // method 1 - slower
+    //Serial.print("Temp C: ");
+    //Serial.print(sensors.getTempC(deviceAddress));
+    //Serial.print(" Temp F: ");
+    //Serial.print(sensors.getTempF(deviceAddress)); // Makes a second call to getTempC and then converts to Fahrenheit
 
-  // method 2 - faster
-  double tempC = sensors.getTempC(deviceAddress);
-  Serial.print("Temp C: ");
-  Serial.print(tempC);
-  Serial.print(" Temp F: ");
-  Serial.println(DallasTemperature::toFahrenheit(tempC)); // Converts tempC to Fahrenheit
-	
-	return tempC;
+    // method 2 - faster
+    double tempC = sensors.getTempC(deviceAddress);
+    Serial.print("Temp C: ");
+    Serial.print(tempC);
+    Serial.print(" Temp F: ");
+    Serial.println(DallasTemperature::toFahrenheit(tempC)); // Converts tempC to Fahrenheit
+    
+    return tempC;
+  }
+
+  else {
+    jsonRoot["temperature"] = String(tempC);
+    jsonRoot["setpoint"] = String(setpoint);
+    // Write out the message for debugging.
+    root.printTo(Serial);
+    Serial.println();
+  }
 }
 
 // function to print a device address
@@ -214,10 +230,10 @@ void loop(){
   check_serial();
 	if (printTempClock.check_trigger()){
 		// Get new temperature reading, compute PID and control heater 
-		heaterInput = print_temperature(insideThermometer); 
+		heaterInput = print_temperature(insideThermometer, jsonFlag); 
 	}
 	heaterPID.Compute(); 
-	analogWrite(HEATER_PIN, heaterOutput);
+	nalogWrite(HEATER_PIN, heaterOutput);
   delay(1000);
 }
 
