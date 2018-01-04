@@ -16,14 +16,14 @@
 #define ONE_WIRE_BUS 7
 // Set heater pin to analog pin 3
 #define HEATER_PIN 6
-
+// Refresh rate for checking temperatures and updating PID input milliseconds, default 1000
+#define TEMP_CHK_MS 100
 
 // Define global variables
 // heaterSetpoint is set in check_serial function
 // heaterInput is set by print_temperature return in main loop
 // heaterOutput is used in main loop to effect heater contol
 double heaterSetpoint, heaterInput, heaterOutput;
-
 
 String inString = "";
 // Create a heaterPID object of type PID - class loaded by thge PID_v1 library
@@ -38,7 +38,7 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
 // arrays to hold device address
-DeviceAddress insideThermometer;
+DeviceAddress insideThermometer, outsideThermometer;
 
 // Create JSON object.
 StaticJsonBuffer<200> jsonBuffer;
@@ -74,7 +74,7 @@ class TimeCheck{
 }; // class TimeCheck
 
 // Create a clock to print the current temperature every second
-TimeCheck printTempClock(1000);
+TimeCheck printTempClock(TEMP_CHK_MS);
 
 
 
@@ -93,7 +93,7 @@ void check_serial(){
     else{
       // ignore if the incomming byte is a carrige return or newline char
       if (incomingByte == '\n' || incomingByte == '\r'){
-          //Serial.println("newline or CR");
+          Serial.println("newline or CR");
         }
       else{
         Serial.println("Incompatible character, use only numbers");
@@ -128,7 +128,8 @@ void	assign_sensors(){
   // you would do this to initially discover addresses on the bus and then 
   // use those addresses and manually assign them (see above) once you know 
   // the devices on your bus (and assuming they don't change).
-  if (!sensors.getAddress(insideThermometer, 0)) Serial.println("Unable to find address for Device 0"); 
+  if (!sensors.getAddress(outsideThermometer, 0)) Serial.println("Unable to find address for Device 0");
+  if (!sensors.getAddress(insideThermometer, 1)) Serial.println("Unable to find address for Device 1"); 
 
   // method 2: search()
   // search() looks for the next device. Returns 1 if a new address has been
@@ -147,11 +148,19 @@ void	assign_sensors(){
   print_address(insideThermometer);
   Serial.println();
 
+  Serial.print("Device 1 Address: ");
+  print_address(outsideThermometer);
+  Serial.println();
+
   // set the resolution to 9 bit (Each Dallas/Maxim device is capable of several different resolutions)
   sensors.setResolution(insideThermometer, 9);
+  sensors.setResolution(outsideThermometer, 9);
  
   Serial.print("Device 0 Resolution: ");
   Serial.print(sensors.getResolution(insideThermometer), DEC); 
+  Serial.println();
+  Serial.print("Device 1 Resolution: ");
+  Serial.print(sensors.getResolution(outsideThermometer), DEC); 
   Serial.println();
 } // << assign_sensors
 
@@ -182,11 +191,28 @@ double print_temperature(DeviceAddress deviceAddress, bool jsonFlag)
   }
 
   else {
-    jsonRoot["temperature"] = String(tempC);
-    jsonRoot["setpoint"] = String(setpoint);
-    // Write out the message for debugging.
-    root.printTo(Serial);
+    // request to all devices on the bus
+    //Serial.print("Requesting temperatures...");
+    sensors.requestTemperatures(); // Send the command to get temperatures
+    //Serial.println("DONE");
+    //delay(200);
+
+    double tempCinside = sensors.getTempC(insideThermometer);
+    double tempCoutside = sensors.getTempC(outsideThermometer);
+    //Serial.print("Current Temp");
+    //Serial.println(tempC);
+    // jsonRoot temperature keeps dropping out and not updating
+    jsonRoot["temperature"] = tempCinside;
+    jsonRoot["temperature_outside"] = tempCoutside;
+    //jsonRoot["setpoint"] = String(setpoint);
+    jsonRoot["setpoint"] = heaterSetpoint;
+    jsonRoot["output"] = heaterOutput;
+    jsonRoot.printTo(Serial);
+    //Serial.print("Current temp string: ");
+    //Serial.println(String(tempC));
     Serial.println();
+  
+    return tempCinside;
   }
 }
 
@@ -222,6 +248,9 @@ void setup(){
 	Serial.println("Type in heater setpoint in degrees Celsius, numbers only");
 
 	heaterPID.SetMode(AUTOMATIC);
+
+  // Set an initial heater Setpoint for DEBUG
+  heaterSetpoint = 25;
 }
 
 
@@ -231,9 +260,12 @@ void loop(){
 	if (printTempClock.check_trigger()){
 		// Get new temperature reading, compute PID and control heater 
 		heaterInput = print_temperature(insideThermometer, jsonFlag); 
+
+    // move compute out of the check_trigger
+    heaterPID.Compute(); 
+    analogWrite(HEATER_PIN, heaterOutput);
 	}
-	heaterPID.Compute(); 
-	nalogWrite(HEATER_PIN, heaterOutput);
-  delay(1000);
+ 
+  //delay(1000);
 }
 
