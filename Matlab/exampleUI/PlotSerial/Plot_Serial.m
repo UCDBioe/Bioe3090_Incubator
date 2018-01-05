@@ -63,21 +63,21 @@ function Plot_Serial_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INU
     % before the program quit previously.
     instrreset
 
-    global temperature_buffer
-    temperature_buffer = zeros(100,1);
-    global temperatureOutside_buffer
-    temperatureOutside_buffer = zeros(size(temperature_buffer));
-    global setpoint_buffer
-    setpoint_buffer = zeros(size(temperature_buffer));
-    global output_buffer
-    output_buffer = zeros(size(temperature_buffer));
+    global temperatureInsideBuffer
+    temperatureInsideBuffer = zeros(100,1);
+    global temperatureOutsideBuffer
+    temperatureOutsideBuffer = zeros(size(temperatureInsideBuffer));
+    global temperatureSetpointBuffer
+    temperatureSetpointBuffer = zeros(size(temperatureInsideBuffer));
+    global pidOutputBuffer
+    pidOutputBuffer = zeros(size(temperatureInsideBuffer));
     
     
     % Choose default command line output for Plot_Serial
     handles.output = hObject;
     
-    %handles.temperature_buffer = zeros(10,1);
-    %handles.setpoint_buffer = zeros(size(handles.temperature_buffer));
+    %handles.temperatureInsideBuffer = zeros(10,1);
+    %handles.temperatureSetpointBuffer = zeros(size(handles.temperatureInsideBuffer));
     
     % Update handles structure
     guidata(hObject, handles);
@@ -85,21 +85,29 @@ function Plot_Serial_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INU
     % UIWAIT makes Plot_Serial wait for user response (see UIRESUME)
     % uiwait(handles.figure1);
     
-    % Make plots for the temperatures and PID values
-    x_data = 1:1:length(temperature_buffer);
-    handles.hTempPlot = plot(handles.axesTemp, x_data, temperature_buffer);
+    % Plot for the inside, outside and setpoint temperatures
+    x_data = 1:1:length(temperatureInsideBuffer);
+    handles.hTempPlot = plot(handles.axesTemp, x_data, temperatureInsideBuffer);
     hold on
-    handles.hTempOutPlot = plot(handles.axesTemp, x_data, temperatureOutside_buffer);
-    handles.hSPPlot = plot(handles.axesTemp, x_data, setpoint_buffer);
+    handles.hTempOutPlot = plot(handles.axesTemp, x_data, temperatureOutsideBuffer);
+    handles.hSPPlot = plot(handles.axesTemp, x_data, temperatureSetpointBuffer);
     hold off
     set(handles.axesTemp, 'YLim', [15,45]);
     title('Temperature Celsius');
     legend('Temp Inside', 'Temp Outside', 'Setpoint', 'Location', 'southwest');
     
-    handles.hPIDPlot = plot(handles.axesPID, x_data, output_buffer);
+    % Plot PID output
+    handles.hPIDPlot = plot(handles.axesPID, x_data, pidOutputBuffer);
     set(handles.axesPID, 'YLim', [0,260]);
     title('PID Output Signal 8-bit');
     guidata(hObject, handles);
+    
+    % Setup structure to hold temperature setpoint and PID values. This
+    % will be used to send/receieve data from the Arduino
+    handles.arduinoVals.pVal = 2;
+    handles.arduinoVals.iVal = 5;
+    handles.arduinoVals.dVal = 1;
+    handles.arduinoVals.tSP = temperatureSetpointBuffer(1); 
     
     
     comPort = choose_usb_dialog;
@@ -220,11 +228,12 @@ function[obj,flag] = setup_serial(comPort, hObject, handles)
   %mbox = msgbox('Serial Communication setup'); uiwait(mbox);
 end
 
+
 function instrcallback(serialObj, event, hObject, handles)
-    global temperature_buffer;
-    global temperatureOutside_buffer;
-    global setpoint_buffer;
-    global output_buffer;
+    global temperatureInsideBuffer;
+    global temperatureOutsideBuffer;
+    global temperatureSetpointBuffer;
+    global pidOutputBuffer;
     %byteNum = serialObj.BytesAvailable;
     a = fscanf(serialObj,'%s\n');
     % Check that the json data is intact by checking that there is a { at
@@ -232,19 +241,19 @@ function instrcallback(serialObj, event, hObject, handles)
     if length(regexp(a,'^{\w*|\W*}$')) == 2
         data = jsondecode(a);
         % Gather data to update axes
-        temperature_buffer= circshift(temperature_buffer,1);
-        temperature_buffer(1) = data.temperature;
-        temperatureOutside_buffer= circshift(temperatureOutside_buffer,1);
-        temperatureOutside_buffer(1) = data.temperature_outside;
-        setpoint_buffer = circshift(setpoint_buffer,1);
-        setpoint_buffer(1) = data.setpoint;
-        output_buffer = circshift(output_buffer,1);
-        output_buffer(1) = data.output;
+        temperatureInsideBuffer= circshift(temperatureInsideBuffer,1);
+        temperatureInsideBuffer(1) = data.temperature;
+        temperatureOutsideBuffer= circshift(temperatureOutsideBuffer,1);
+        temperatureOutsideBuffer(1) = data.temperature_outside;
+        temperatureSetpointBuffer = circshift(temperatureSetpointBuffer,1);
+        temperatureSetpointBuffer(1) = data.setpoint;
+        pidOutputBuffer = circshift(pidOutputBuffer,1);
+        pidOutputBuffer(1) = data.output;
         % Update Plots
-        handles.hTempPlot.YData = temperature_buffer;
-        handles.hTempOutPlot.YData = temperatureOutside_buffer;
-        handles.hSPPlot.YData = setpoint_buffer;
-        handles.hPIDPlot.YData = output_buffer;
+        handles.hTempPlot.YData = temperatureInsideBuffer;
+        handles.hTempOutPlot.YData = temperatureOutsideBuffer;
+        handles.hSPPlot.YData = temperatureSetpointBuffer;
+        handles.hPIDPlot.YData = pidOutputBuffer;
         drawnow()
     end
 end
@@ -261,9 +270,17 @@ function editSerialOut_Callback(hObject, eventdata, handles) %#ok<DEFNU>
 
     % Get the datat from the text field and send it by serial to the attached
     % Arduino
-    serialData = get(hObject,'String');
+    handles.arduinoVals.tSP = str2double(get(hObject,'String'));
+    guidata(hObject, handles);
+    updateArduinoVals(handles);
+     
+end
+
+function updateArduinoVals(handles)
+    % update the PID and temperature setpoint values in the arduino
+    serialData = jsonencode(handles.arduinoVals);
     
-    fprintf(handles.serialObj,serialData); 
+    fprintf(handles.serialObj,serialData);
 end
 
 % --- Executes during object creation, after setting all properties.

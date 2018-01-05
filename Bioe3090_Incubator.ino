@@ -17,7 +17,7 @@
 // Set heater pin to analog pin 3
 #define HEATER_PIN 6
 // Refresh rate for checking temperatures and updating PID input milliseconds, default 1000
-#define TEMP_CHK_MS 100
+#define TEMP_CHK_MS 1000
 
 // Define global variables
 // heaterSetpoint is set in check_serial function
@@ -28,8 +28,11 @@ double heaterSetpoint, heaterInput, heaterOutput;
 String inString = "";
 // Create a heaterPID object of type PID - class loaded by thge PID_v1 library
 //
+double pVal = 20;
+double iVal = 5;
+double dVal = 1;
 // variables passed by reference as outlined in the class.
-PID heaterPID(&heaterInput, &heaterOutput, &heaterSetpoint,20,5,1, DIRECT);
+PID heaterPID(&heaterInput, &heaterOutput, &heaterSetpoint,pVal, iVal, dVal, DIRECT);
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
@@ -41,8 +44,8 @@ DallasTemperature sensors(&oneWire);
 DeviceAddress insideThermometer, outsideThermometer;
 
 // Create JSON object.
-StaticJsonBuffer<200> jsonBuffer;
-JsonObject& jsonRoot = jsonBuffer.createObject();
+//StaticJsonBuffer<200> jsonBuffer;
+//JsonObject& jsonRoot = jsonBuffer.createObject();
 bool jsonFlag = true; 
 
 class TimeCheck{
@@ -55,7 +58,7 @@ class TimeCheck{
 		timeTrigger = _timeTrigger;
 	}
 	
-	set_trigger(unsigned long _timeTrigger){
+	void set_trigger(unsigned long _timeTrigger){
 		timeTrigger = _timeTrigger;
 	} 
 
@@ -83,9 +86,11 @@ void check_serial(){
   // Ask user to input the setpoint for the heater.
   //Serial.print("Enter temperature setpoint in degrees Celsius: ");
   // send data only when you receive data:
+  // Clear the input string 
   while (Serial.available() > 0) {
     // read the incoming byte:
     int incomingByte = Serial.read();
+    /*
     // if the data is a digit, add it to inString
     if (isDigit(incomingByte)){
       inString += (char)incomingByte;
@@ -99,14 +104,36 @@ void check_serial(){
         Serial.println("Incompatible character, use only numbers");
       }
     }
+    */
 
+    inString += (char)incomingByte;
     // Check if the incoming byte is a newline character
     if (incomingByte == '\n'){
       // say what you got:
       Serial.print("I received: ");
       // Set temperature setpoint to the inString number
-      heaterSetpoint = inString.toFloat();
+      //heaterSetpoint = inString.toFloat();
+      //Serial.println(heaterSetpoint);
+
+      // json format: {"pVal":2,"iVal":5,"dVal":1,"tSP":20}
+      Serial.println(inString);
+      // Create JSON object.
+      StaticJsonBuffer<200> jsonBuffer;
+      //JsonObject& jsonRoot = jsonBuffer.createObject();
+      JsonObject& jsonRoot = jsonBuffer.parseObject(inString);
+
+      // Test if parsing succeeds.
+      if (!jsonRoot.success()) {
+        Serial.println("parseObject() failed");
+        // Clear the input string 
+        inString = "";
+        return;
+      }
+
+      double tSP = jsonRoot["tSP"];
+      heaterSetpoint = tSP;
       Serial.println(heaterSetpoint);
+      
       // Clear the input string 
       inString = "";
     }
@@ -201,6 +228,9 @@ double print_temperature(DeviceAddress deviceAddress, bool jsonFlag)
     double tempCoutside = sensors.getTempC(outsideThermometer);
     //Serial.print("Current Temp");
     //Serial.println(tempC);
+    // Create JSON object.
+    StaticJsonBuffer<200> jsonBuffer;
+    JsonObject& jsonRoot = jsonBuffer.createObject();
     // jsonRoot temperature keeps dropping out and not updating
     jsonRoot["temperature"] = tempCinside;
     jsonRoot["temperature_outside"] = tempCoutside;
