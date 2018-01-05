@@ -23,7 +23,7 @@ function varargout = Plot_Serial(varargin)
 
     % Edit the above text to modify the response to help Plot_Serial
 
-    % Last Modified by GUIDE v2.5 04-Jan-2018 18:08:40
+    % Last Modified by GUIDE v2.5 04-Jan-2018 21:04:34
     
     % TODO - add PI&D test fields to change those values programmatically
     % on the Arduino. This will be done using json. This will also require
@@ -71,6 +71,8 @@ function Plot_Serial_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INU
     temperatureSetpointBuffer = zeros(size(temperatureInsideBuffer));
     global pidOutputBuffer
     pidOutputBuffer = zeros(size(temperatureInsideBuffer));
+    global timeBuffer
+    timeBuffer = zeros(size(temperatureInsideBuffer));
     
     
     % Choose default command line output for Plot_Serial
@@ -86,20 +88,25 @@ function Plot_Serial_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INU
     % uiwait(handles.figure1);
     
     % Plot for the inside, outside and setpoint temperatures
-    x_data = 1:1:length(temperatureInsideBuffer);
+    %x_data = 1:1:length(temperatureInsideBuffer);
+    x_data = timeBuffer;
     handles.hTempPlot = plot(handles.axesTemp, x_data, temperatureInsideBuffer);
     hold on
     handles.hTempOutPlot = plot(handles.axesTemp, x_data, temperatureOutsideBuffer);
     handles.hSPPlot = plot(handles.axesTemp, x_data, temperatureSetpointBuffer);
     hold off
     set(handles.axesTemp, 'YLim', [15,45]);
-    title('Temperature Celsius');
+    title('Temperature');
+    handles.axesTemp.YLabel.String = 'Degrees Celsius';
+    handles.axesTemp.XLabel.String = 'Time (s)';
     legend('Temp Inside', 'Temp Outside', 'Setpoint', 'Location', 'southwest');
     
     % Plot PID output
     handles.hPIDPlot = plot(handles.axesPID, x_data, pidOutputBuffer);
     set(handles.axesPID, 'YLim', [0,260]);
-    title('PID Output Signal 8-bit');
+    %set(handles.axesPID, 'Title', 'PID Output Signal 8-bit');
+    handles.axesPID.Title.String='PID Output Signal 8-bit';
+    handles.axesPID.XLabel.String = 'Time (s)';
     guidata(hObject, handles);
     
     % Setup structure to hold temperature setpoint and PID values. This
@@ -234,33 +241,53 @@ function instrcallback(serialObj, event, hObject, handles)
     global temperatureOutsideBuffer;
     global temperatureSetpointBuffer;
     global pidOutputBuffer;
+    global timeBuffer;
     %byteNum = serialObj.BytesAvailable;
     a = fscanf(serialObj,'%s\n');
     % Check that the json data is intact by checking that there is a { at
     % the beginning and a } at the end of the string.
     if length(regexp(a,'^{\w*|\W*}$')) == 2
-        data = jsondecode(a);
+        try % Error handling in case the JSON message is poorly formed
+            data = jsondecode(a);
+        catch ME
+            fprintf(2,'Error thrown in JSON decode\n');
+            fprintf(2,'JSON msg poorly formatted?\n');
+            fprintf(2,'%s\n', ME.message);
+            return
+        end
+%         data = jsondecode(a);
         % Gather data to update axes
         temperatureInsideBuffer= circshift(temperatureInsideBuffer,1);
-        temperatureInsideBuffer(1) = data.temperature;
+        temperatureInsideBuffer(1) = data.temperatureInside;
         temperatureOutsideBuffer= circshift(temperatureOutsideBuffer,1);
-        temperatureOutsideBuffer(1) = data.temperature_outside;
+        temperatureOutsideBuffer(1) = data.temperatureOutside;
         temperatureSetpointBuffer = circshift(temperatureSetpointBuffer,1);
-        temperatureSetpointBuffer(1) = data.setpoint;
+        temperatureSetpointBuffer(1) = data.temperatureSetpoint;
         pidOutputBuffer = circshift(pidOutputBuffer,1);
-        pidOutputBuffer(1) = data.output;
+        pidOutputBuffer(1) = data.PIDoutput;
+        timeBuffer = circshift(timeBuffer,1);
+        timeBuffer(1) = data.time/1000;
         % Update Plots
+        handles.axesTemp.XLim = [timeBuffer(end), timeBuffer(1)];
+        handles.axesPID.XLim  = [timeBuffer(end), timeBuffer(1)];
+        handles.hTempPlot.XData = timeBuffer;
         handles.hTempPlot.YData = temperatureInsideBuffer;
+        handles.hTempOutPlot.XData = timeBuffer;
         handles.hTempOutPlot.YData = temperatureOutsideBuffer;
+        handles.hSPPlot.XData = timeBuffer;
         handles.hSPPlot.YData = temperatureSetpointBuffer;
+        handles.hPIDPlot.XData = timeBuffer;
         handles.hPIDPlot.YData = pidOutputBuffer;
         drawnow()
+        % Update textbox values
+        set(handles.editInTemp, 'string', num2str(data.temperatureInside));
+        set(handles.editOutTemp,'string', num2str(data.temperatureOutside));
     end
 end
 
 function updateArduinoVals(handles)
     % update the PID and temperature setpoint values in the arduino
-    serialData = jsonencode(handles.arduinoVals)
+    serialData = jsonencode(handles.arduinoVals);
     
     
     fprintf(handles.serialObj,serialData);
@@ -372,6 +399,53 @@ end
 % --- Executes during object creation, after setting all properties.
 function editDval_CreateFcn(hObject, eventdata, handles)%#ok<DEFNU>
 % hObject    handle to editDval (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+
+function editInTemp_Callback(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editInTemp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editInTemp as text
+%        str2double(get(hObject,'String')) returns contents of editInTemp as a double
+end
+
+% --- Executes during object creation, after setting all properties.
+function editInTemp_CreateFcn(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editInTemp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+function editOutTemp_Callback(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editOutTemp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editOutTemp as text
+%        str2double(get(hObject,'String')) returns contents of editOutTemp as a double
+end
+
+% --- Executes during object creation, after setting all properties.
+function editOutTemp_CreateFcn(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editOutTemp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 

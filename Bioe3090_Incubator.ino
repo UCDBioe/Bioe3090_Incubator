@@ -1,6 +1,9 @@
 /* Bioe3090_Incubator.ino - Example controls for Bioe 3090 Incubator Project
 	Created by: Steve Lammers, 12/11/2017
 	Released to the public domain.
+
+  TODO - time, needed for the x-axis of the plots in matlab
+       - data logging on matlab
 */
 
 // PID library for controls
@@ -241,11 +244,12 @@ double print_temperature(DeviceAddress deviceAddress, bool jsonFlag)
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& jsonRoot = jsonBuffer.createObject();
     // jsonRoot temperature keeps dropping out and not updating
-    jsonRoot["temperature"] = tempCinside;
-    jsonRoot["temperature_outside"] = tempCoutside;
+    jsonRoot["temperatureInside"] = tempCinside;
+    jsonRoot["temperatureOutside"] = tempCoutside;
     //jsonRoot["setpoint"] = String(setpoint);
-    jsonRoot["setpoint"] = heaterSetpoint;
-    jsonRoot["output"] = heaterOutput;
+    jsonRoot["temperatureSetpoint"] = heaterSetpoint;
+    jsonRoot["PIDoutput"] = heaterOutput;
+    jsonRoot["time"] = millis();//(millis() * 205 ) >> 11; //millis()/1000;
     jsonRoot.printTo(Serial);
     //Serial.print("Current temp string: ");
     //Serial.println(String(tempC));
