@@ -17,7 +17,7 @@
 // Set heater pin to analog pin 3
 #define HEATER_PIN 6
 // Refresh rate for checking temperatures and updating PID input milliseconds, default 1000
-#define TEMP_CHK_MS 1000
+#define TEMP_CHK_MS 100
 
 // Define global variables
 // heaterSetpoint is set in check_serial function
@@ -28,9 +28,7 @@ double heaterSetpoint, heaterInput, heaterOutput;
 String inString = "";
 // Create a heaterPID object of type PID - class loaded by thge PID_v1 library
 //
-double pVal = 20;
-double iVal = 5;
-double dVal = 1;
+double pVal = 20, iVal = 5, dVal = 1;
 // variables passed by reference as outlined in the class.
 PID heaterPID(&heaterInput, &heaterOutput, &heaterSetpoint,pVal, iVal, dVal, DIRECT);
 
@@ -117,7 +115,12 @@ void check_serial(){
 
       // json format: {"pVal":2,"iVal":5,"dVal":1,"tSP":20}
       Serial.println(inString);
-      // Create JSON object.
+      // Create JSON object, must create json object as a local objet here, not
+      //  as a global as typical in the example docs in the ArduinoJson library.
+      //  Otherwise the object is not destroyed after the loop is complete and
+      //  if the parsing does not succeed then future calls to parse incomming
+      //  correctly formatted json strings will also fail. Making the object local
+      //  fixes this problem.
       StaticJsonBuffer<200> jsonBuffer;
       //JsonObject& jsonRoot = jsonBuffer.createObject();
       JsonObject& jsonRoot = jsonBuffer.parseObject(inString);
@@ -130,9 +133,15 @@ void check_serial(){
         return;
       }
 
-      double tSP = jsonRoot["tSP"];
-      heaterSetpoint = tSP;
+      //double tSP = jsonRoot["tSP"];
+      //heaterSetpoint = tSP;
+      heaterSetpoint = jsonRoot["tSP"];
       Serial.println(heaterSetpoint);
+
+      pVal = jsonRoot["pVal"];
+      iVal = jsonRoot["iVal"];
+      dVal = jsonRoot["dVal"];
+      heaterPID.SetTunings(pVal, iVal, dVal);
       
       // Clear the input string 
       inString = "";
@@ -277,6 +286,7 @@ void setup(){
 	Serial.println("\n\n Incubator Control");
 	Serial.println("Type in heater setpoint in degrees Celsius, numbers only");
 
+  //turn the PID on
 	heaterPID.SetMode(AUTOMATIC);
 
   // Set an initial heater Setpoint for DEBUG

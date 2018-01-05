@@ -23,7 +23,7 @@ function varargout = Plot_Serial(varargin)
 
     % Edit the above text to modify the response to help Plot_Serial
 
-    % Last Modified by GUIDE v2.5 19-Dec-2017 07:32:21
+    % Last Modified by GUIDE v2.5 04-Jan-2018 18:08:40
     
     % TODO - add PI&D test fields to change those values programmatically
     % on the Arduino. This will be done using json. This will also require
@@ -258,15 +258,21 @@ function instrcallback(serialObj, event, hObject, handles)
     end
 end
 
+function updateArduinoVals(handles)
+    % update the PID and temperature setpoint values in the arduino
+    serialData = jsonencode(handles.arduinoVals)
+    
+    
+    fprintf(handles.serialObj,serialData);
+end
 
-
-function editSerialOut_Callback(hObject, eventdata, handles) %#ok<DEFNU>
-    % hObject    handle to editSerialOut (see GCBO)
+function editTempSP_Callback(hObject, eventdata, handles) %#ok<DEFNU>
+    % hObject    handle to editTempSP (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % handles    structure with handles and user data (see GUIDATA)
 
-    % Hints: get(hObject,'String') returns contents of editSerialOut as text
-    %        str2double(get(hObject,'String')) returns contents of editSerialOut as a double
+    % Hints: get(hObject,'String') returns contents of editTempSP as text
+    %        str2double(get(hObject,'String')) returns contents of editTempSP as a double
 
     % Get the datat from the text field and send it by serial to the attached
     % Arduino
@@ -276,16 +282,10 @@ function editSerialOut_Callback(hObject, eventdata, handles) %#ok<DEFNU>
      
 end
 
-function updateArduinoVals(handles)
-    % update the PID and temperature setpoint values in the arduino
-    serialData = jsonencode(handles.arduinoVals);
-    
-    fprintf(handles.serialObj,serialData);
-end
 
 % --- Executes during object creation, after setting all properties.
-function editSerialOut_CreateFcn(hObject, eventdata, handles) %#ok<DEFNU>
-    % hObject    handle to editSerialOut (see GCBO)
+function editTempSP_CreateFcn(hObject, eventdata, handles) %#ok<DEFNU>
+    % hObject    handle to editTempSP (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % handles    empty - handles not created until after all CreateFcns called
 
@@ -295,4 +295,89 @@ function editSerialOut_CreateFcn(hObject, eventdata, handles) %#ok<DEFNU>
         set(hObject,'BackgroundColor','white');
     end
 
+end
+
+
+
+function editPval_Callback(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editPval (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editPval as text
+%        str2double(get(hObject,'String')) returns contents of editPval as a double
+% Get the datat from the text field and send it by serial to the attached
+    % Arduino
+    handles.arduinoVals.pVal = str2double(get(hObject,'String'));
+    guidata(hObject, handles);
+    updateArduinoVals(handles);
+end
+
+% --- Executes during object creation, after setting all properties.
+function editPval_CreateFcn(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editPval (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+function editIIval_Callback(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editIIval (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editIIval as text
+%        str2double(get(hObject,'String')) returns contents of editIIval as a double
+% Get the datat from the text field and send it by serial to the attached
+    % Arduino
+    handles.arduinoVals.iVal = str2double(get(hObject,'String'));
+    guidata(hObject, handles);
+    updateArduinoVals(handles);
+end
+
+% --- Executes during object creation, after setting all properties.
+function editIIval_CreateFcn(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editIIval (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+function editDval_Callback(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editDval (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editDval as text
+%        str2double(get(hObject,'String')) returns contents of editDval as a double
+% Get the datat from the text field and send it by serial to the attached
+    % Arduino
+    handles.arduinoVals.dVal = str2double(get(hObject,'String'));
+    guidata(hObject, handles);
+    updateArduinoVals(handles);
+end
+
+% --- Executes during object creation, after setting all properties.
+function editDval_CreateFcn(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editDval (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 end
