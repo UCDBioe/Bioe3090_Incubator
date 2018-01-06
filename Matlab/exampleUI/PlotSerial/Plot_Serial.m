@@ -23,7 +23,7 @@ function varargout = Plot_Serial(varargin)
 
     % Edit the above text to modify the response to help Plot_Serial
 
-    % Last Modified by GUIDE v2.5 04-Jan-2018 21:04:34
+    % Last Modified by GUIDE v2.5 05-Jan-2018 18:11:53
     
     % TODO - add PI&D test fields to change those values programmatically
     % on the Arduino. This will be done using json. This will also require
@@ -73,6 +73,9 @@ function Plot_Serial_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INU
     pidOutputBuffer = zeros(size(temperatureInsideBuffer));
     global timeBuffer
     timeBuffer = zeros(size(temperatureInsideBuffer));
+    
+    global dataFile 
+    dataFile = NaN;
     
     
     % Choose default command line output for Plot_Serial
@@ -237,11 +240,16 @@ end
 
 
 function instrcallback(serialObj, event, hObject, handles)
+    % This is a callback function, so the state of the handles is the same
+    %  state as when this function was first called. This also means that 
+    %  handles cannot be updated from this method so guidata(hObject,
+    %  handles) will not work here.
     global temperatureInsideBuffer;
     global temperatureOutsideBuffer;
     global temperatureSetpointBuffer;
     global pidOutputBuffer;
     global timeBuffer;
+    global dataFile;
     %byteNum = serialObj.BytesAvailable;
     a = fscanf(serialObj,'%s\n');
     % Check that the json data is intact by checking that there is a { at
@@ -282,6 +290,14 @@ function instrcallback(serialObj, event, hObject, handles)
         % Update textbox values
         set(handles.editInTemp, 'string', num2str(data.temperatureInside));
         set(handles.editOutTemp,'string', num2str(data.temperatureOutside));
+        % Save data to disk
+        if ~isnan(dataFile)
+            save_data(temperatureInsideBuffer(1),...
+                      temperatureOutsideBuffer(1),...
+                      temperatureSetpointBuffer(1),...
+                      pidOutputBuffer(1),...
+                      timeBuffer(1));
+        end
     end
 end
 
@@ -454,4 +470,26 @@ function editOutTemp_CreateFcn(hObject, eventdata, handles)%#ok<DEFNU>
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+end
+
+
+function save_data(tIn,tOut,tSP,pid,time)
+global dataFile;
+dlmwrite(dataFile,[tIn,tOut,tSP,pid,time], '-append')
+end
+
+% --- Create file and open fid for saving data to disk.
+function PBfile_Callback(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to PBfile (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global dataFile;
+[filename,pathname] = uiputfile('*.csv', 'Select file to save data');
+handles.filename = filename;
+handles.pathname = pathname;
+dataFile = fullfile(pathname, filename);
+fid = fopen(dataFile,'w');
+fprintf(fid,'InsideTempC,OutsideTempC,SetpointTempC,PidOutput,TimeS\n');
+fclose(fid);
+guidata(hObject, handles);
 end
