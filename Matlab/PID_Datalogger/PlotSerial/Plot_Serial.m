@@ -1,3 +1,27 @@
+% PID_DATALOGGER UI for logging data from a PID-enabled microcontroller
+%   PID_DATALOGGER() top-level main function that does not accept arguments
+%   
+%   - P-value, I-value, D-value and Temperature Setpoint are user definable
+%   these textboxes can be changed in real-time as the program is running
+%   and they update the correspoinding control variables in the arduino
+%   by communicating the data over serial in JSON format.
+%
+%   - Inside Temperature and Outside Temperature show the last recieved
+%   temperature value.
+%
+%   - "Write to file" pushbutton opens a dialog box to save data to a given
+%   file. Data is written in csv format. Existing files will be 
+%   overwritten. Data will be written from the time when the pushbutton is
+%   clicked onward. Any data recieved or plotted from the start of the
+%   PID_datalogger UI until pressing the "Write to file" pushbutton will be
+%   lost.
+%
+%   "Stop" pushbutton closes open files and exits program
+%
+% Created by: Steve Lammers, 12/11/2017
+% Released to the public domain. 
+
+
 
 function varargout = Plot_Serial(varargin)
     % PLOT_SERIAL MATLAB code for Plot_Serial.fig

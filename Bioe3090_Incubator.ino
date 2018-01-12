@@ -1,9 +1,6 @@
 /* Bioe3090_Incubator.ino - Example controls for Bioe 3090 Incubator Project
 	Created by: Steve Lammers, 12/11/2017
 	Released to the public domain.
-
-  TODO - time, needed for the x-axis of the plots in matlab
-       - data logging on matlab
 */
 
 // PID library for controls
