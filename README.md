@@ -1,10 +1,44 @@
-<<<<<<< HEAD
 Required Libraries
 -------------------
 * PID_v1
 * DallasTemperature
 * OneWire
 
-=======
-# Bioe3090_Incubator
->>>>>>> ca66e5bb74677a742f1fa1a8551dbde52b84375f
+Bioe3090_Incubator
+------------------
+
+TODO -  Fix print_temperature function. Split into two functions, one prints temperature
+  and the other builds JSON output.
+
+class TimeCheck(_timeTrigger) - Simple time trigger, needs to be polled to work.
+  When polled with check_trigger the model will return true if enough time has
+  elapsed to satisfy the condition `(current_time - initial_time) > time_trigger`.
+  If this condition has been met, the poll resets initial_time to current time and
+  returns the boolean true, else false is returned.
+
+void check_serial() - Function that checks the serial port to see if data is available.
+  If data is available, the function reads the data until a newline character is reached.
+  The data is validated to be a correctly formatted JSON string. The JSON string is decoded
+  and the decoded string is stored into global variables for the PID values and heater setpoint.
+
+void assign_sensors() - Startup function to assign the DS18B20 temperature sensors to 
+  the outside and inside positions within the incubator.
+
+double print_temperature(DeviceAddress deviceAddress, bool jsonFlag) - Function to print the 
+  temperature of a DS18B20 temperature device and to update temperature input for PID control. 
+  The temperature of the given device is printed to serial. This is useful for debugging. The temperature
+  value is returned as a double. This can be used to update the temperature input for PID control
+  in the main loop.
+
+void json_output(&double) - Gathers data, builds JSON message and outputs message to the serial port of the
+  Arduino. JSON output string is encoded to contain information for the inside and outside tempertures, 
+  the PID output value and the time of the request. This data is then output on the serial port. 
+  Takes an address to a double as an input. This double is the input heater value for the PID control. 
+  Therefore, the PID heater input value is updated within the json_output function.
+
+void print_address(DeviceAddress deviceAddress) - Prints the address of the given DS18B20 device.
+
+void startup() - Standard Arduino startup function. Starts serial coms, assigns sensors, set PID mode and
+  sets heater setpoint.
+
+void loop() - Main Arduino program loop. 

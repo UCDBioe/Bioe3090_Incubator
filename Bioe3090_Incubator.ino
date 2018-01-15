@@ -200,60 +200,55 @@ void	assign_sensors(){
   Serial.println();
 } // << assign_sensors
 
-
 // function to print the temperature for a device
-double print_temperature(DeviceAddress deviceAddress, bool jsonFlag)
+double print_temperature(DeviceAddress deviceAddress)
 {
-  if (!jsonFlag){
-    // request to all devices on the bus
-    Serial.print("Requesting temperatures...");
-    sensors.requestTemperatures(); // Send the command to get temperatures
-    Serial.println("DONE");
+  // request to all devices on the bus
+  Serial.print("Requesting temperatures...");
+  sensors.requestTemperatures(); // Send the command to get temperatures
+  Serial.println("DONE");
 
-    // method 1 - slower
-    //Serial.print("Temp C: ");
-    //Serial.print(sensors.getTempC(deviceAddress));
-    //Serial.print(" Temp F: ");
-    //Serial.print(sensors.getTempF(deviceAddress)); // Makes a second call to getTempC and then converts to Fahrenheit
+  // method 1 - slower
+  //Serial.print("Temp C: ");
+  //Serial.print(sensors.getTempC(deviceAddress));
+  //Serial.print(" Temp F: ");
+  //Serial.print(sensors.getTempF(deviceAddress)); // Makes a second call to getTempC and then converts to Fahrenheit
 
-    // method 2 - faster
-    double tempC = sensors.getTempC(deviceAddress);
-    Serial.print("Temp C: ");
-    Serial.print(tempC);
-    Serial.print(" Temp F: ");
-    Serial.println(DallasTemperature::toFahrenheit(tempC)); // Converts tempC to Fahrenheit
-    
-    return tempC;
-  }
-
-  else {
-    // request to all devices on the bus
-    //Serial.print("Requesting temperatures...");
-    sensors.requestTemperatures(); // Send the command to get temperatures
-    //Serial.println("DONE");
-    //delay(200);
-
-    double tempCinside = sensors.getTempC(insideThermometer);
-    double tempCoutside = sensors.getTempC(outsideThermometer);
-    //Serial.print("Current Temp");
-    //Serial.println(tempC);
-    // Create JSON object.
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& jsonRoot = jsonBuffer.createObject();
-    // jsonRoot temperature keeps dropping out and not updating
-    jsonRoot["temperatureInside"] = tempCinside;
-    jsonRoot["temperatureOutside"] = tempCoutside;
-    //jsonRoot["setpoint"] = String(setpoint);
-    jsonRoot["temperatureSetpoint"] = heaterSetpoint;
-    jsonRoot["PIDoutput"] = heaterOutput;
-    jsonRoot["time"] = millis();//(millis() * 205 ) >> 11; //millis()/1000;
-    jsonRoot.printTo(Serial);
-    //Serial.print("Current temp string: ");
-    //Serial.println(String(tempC));
-    Serial.println();
+  // method 2 - faster
+  double tempC = sensors.getTempC(deviceAddress);
+  Serial.print("Temp C: ");
+  Serial.print(tempC);
+  Serial.print(" Temp F: ");
+  Serial.println(DallasTemperature::toFahrenheit(tempC)); // Converts tempC to Fahrenheit
   
-    return tempCinside;
-  }
+  return tempC;
+}
+
+// Gathers output data, format as JSON and output as serial communication
+double json_output(double *pidInputControl)
+{ 
+  
+  // request to all devices on the bus
+  //Serial.print("Requesting temperatures...");
+  sensors.requestTemperatures(); // Send the command to get temperatures
+  //Serial.println("DONE");
+  //delay(200);
+
+  double tempCinside = sensors.getTempC(insideThermometer);
+  double tempCoutside = sensors.getTempC(outsideThermometer);
+  *pidInputControl = tempCinside;
+  // Create JSON object.
+  StaticJsonBuffer<200> jsonBuffer;
+  JsonObject& jsonRoot = jsonBuffer.createObject();
+  jsonRoot["temperatureInside"] = tempCinside;
+  jsonRoot["temperatureOutside"] = tempCoutside;
+  jsonRoot["temperatureSetpoint"] = heaterSetpoint;
+  jsonRoot["PIDoutput"] = heaterOutput;
+  jsonRoot["time"] = millis();//(millis() * 205 ) >> 11; //millis()/1000;
+  jsonRoot.printTo(Serial);
+  //Serial.print("Current temp string: ");
+  //Serial.println(String(tempC));
+  Serial.println();
 }
 
 // function to print a device address
@@ -300,13 +295,19 @@ void loop(){
   check_serial();
 	if (printTempClock.check_trigger()){
 		// Get new temperature reading, compute PID and control heater 
-		heaterInput = print_temperature(insideThermometer, jsonFlag); 
-
+		//heaterInput = print_temperature(insideThermometer); 
+    //heaterPID.Compute(); 
     // move compute out of the check_trigger
+    //analogWrite(HEATER_PIN, heaterOutput);
+    
+    // Output data to serial.
+    json_output(&heaterInput);
     heaterPID.Compute(); 
+    // move compute out of the check_trigger
     analogWrite(HEATER_PIN, heaterOutput);
+
 	}
  
-  //delay(1000);
+  //DEL delay(1000);
 }
 
