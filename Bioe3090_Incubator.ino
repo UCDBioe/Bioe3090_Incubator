@@ -19,7 +19,11 @@
 // Refresh rate for checking temperatures and updating PID input milliseconds, default 1000
 #define TEMP_CHK_MS 100
 
+#define BATTERY_PIN 0 
 // Define global variables
+double batteryVoltage;
+double resistV1 = 3300.0;
+double resistV2 = 2200.0; 
 // heaterSetpoint is set in check_serial function
 // heaterInput is set by print_temperature return in main loop
 // heaterOutput is used in main loop to effect heater contol
@@ -200,6 +204,13 @@ void	assign_sensors(){
   Serial.println();
 } // << assign_sensors
 
+double convert_battery_voltage(int analog_reading){
+  // Converts the analog reading to battery voltge
+  double volts = (double)analog_reading/1023.0*5.0*(resistV1 + resistV2)/resistV2;
+
+  return volts;
+}
+
 // function to print the temperature for a device
 double print_temperature(DeviceAddress deviceAddress)
 {
@@ -236,7 +247,13 @@ double json_output(double *pidInputControl)
 
   double tempCinside = sensors.getTempC(insideThermometer);
   double tempCoutside = sensors.getTempC(outsideThermometer);
-  *pidInputControl = tempCinside;
+  // *pidInputControl: used to update PID input value through pointer
+  *pidInputControl = tempCinside; 
+  
+  // Measure battery voltage
+  int analog_batt = analogRead(BATTERY_PIN);
+  batteryVoltage = convert_battery_voltage(analog_batt);
+
   // Create JSON object.
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& jsonRoot = jsonBuffer.createObject();
@@ -245,6 +262,7 @@ double json_output(double *pidInputControl)
   jsonRoot["temperatureSetpoint"] = heaterSetpoint;
   jsonRoot["PIDoutput"] = heaterOutput;
   jsonRoot["time"] = millis();//(millis() * 205 ) >> 11; //millis()/1000;
+  jsonRoot["batteryVolts"] = batteryVoltage;
   jsonRoot.printTo(Serial);
   //Serial.print("Current temp string: ");
   //Serial.println(String(tempC));

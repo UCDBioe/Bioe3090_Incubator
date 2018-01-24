@@ -47,7 +47,7 @@ function varargout = Plot_Serial(varargin)
 
     % Edit the above text to modify the response to help Plot_Serial
 
-    % Last Modified by GUIDE v2.5 05-Jan-2018 18:11:53
+    % Last Modified by GUIDE v2.5 19-Jan-2018 08:21:11
     
     % TODO - add PI&D test fields to change those values programmatically
     % on the Arduino. This will be done using json. This will also require
@@ -97,6 +97,8 @@ function Plot_Serial_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INU
     pidOutputBuffer = zeros(size(temperatureInsideBuffer));
     global timeBuffer
     timeBuffer = zeros(size(temperatureInsideBuffer));
+    global batteryBuffer
+    batteryBuffer = zeros(size(temperatureInsideBuffer));
     
     global dataFile 
     dataFile = NaN;
@@ -165,9 +167,9 @@ function varargout = Plot_Serial_OutputFcn(hObject, eventdata, handles)
 end
 
 
-% --- Executes on button press in pushbutton1.
-function pushbutton1_Callback(hObject, eventdata, handles) %#ok<DEFNU>
-    % hObject    handle to pushbutton1 (see GCBO)
+% --- Executes on button press in pushbuttonStop.
+function pushbuttonStop_Callback(hObject, eventdata, handles) %#ok<DEFNU>
+    % hObject    handle to pushbuttonStop (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % handles    structure with handles and user data (see GUIDATA)
     fclose(handles.serialObj);
@@ -273,6 +275,7 @@ function instrcallback(serialObj, event, hObject, handles)
     global temperatureSetpointBuffer;
     global pidOutputBuffer;
     global timeBuffer;
+    global batteryBuffer;
     global dataFile;
     %byteNum = serialObj.BytesAvailable;
     a = fscanf(serialObj,'%s\n');
@@ -297,6 +300,8 @@ function instrcallback(serialObj, event, hObject, handles)
         temperatureSetpointBuffer(1) = data.temperatureSetpoint;
         pidOutputBuffer = circshift(pidOutputBuffer,1);
         pidOutputBuffer(1) = data.PIDoutput;
+        batteryBuffer = circshift(batteryBuffer,1);
+        batteryBuffer(1) = data.batteryVolts;
         timeBuffer = circshift(timeBuffer,1);
         timeBuffer(1) = data.time/1000;
         % Update Plots
@@ -314,13 +319,15 @@ function instrcallback(serialObj, event, hObject, handles)
         % Update textbox values
         set(handles.editInTemp, 'string', num2str(data.temperatureInside));
         set(handles.editOutTemp,'string', num2str(data.temperatureOutside));
+        set(handles.editBatteryVolts,'string', num2str(data.batteryVolts));
         % Save data to disk
         if ~isnan(dataFile)
             save_data(temperatureInsideBuffer(1),...
                       temperatureOutsideBuffer(1),...
                       temperatureSetpointBuffer(1),...
                       pidOutputBuffer(1),...
-                      timeBuffer(1));
+                      timeBuffer(1),...
+                      batteryBuffer(1));
         end
     end
 end
@@ -497,9 +504,9 @@ end
 end
 
 
-function save_data(tIn,tOut,tSP,pid,time)
+function save_data(tIn,tOut,tSP,pid,time,volts)
 global dataFile;
-dlmwrite(dataFile,[tIn,tOut,tSP,pid,time], '-append')
+dlmwrite(dataFile,[tIn,tOut,tSP,pid,time,volts], '-append')
 end
 
 % --- Create file and open fid for saving data to disk.
@@ -513,7 +520,40 @@ handles.filename = filename;
 handles.pathname = pathname;
 dataFile = fullfile(pathname, filename);
 fid = fopen(dataFile,'w');
-fprintf(fid,'InsideTempC,OutsideTempC,SetpointTempC,PidOutput,TimeS\n');
+fprintf(fid,'InsideTempC,OutsideTempC,SetpointTempC,PidOutput,TimeS,BatteryVolts\n');
 fclose(fid);
 guidata(hObject, handles);
 end
+
+
+
+function editBatteryVolts_Callback(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editBatteryVolts (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editBatteryVolts as text
+%        str2double(get(hObject,'String')) returns contents of editBatteryVolts as a double
+
+end
+
+% --- Executes during object creation, after setting all properties.
+function editBatteryVolts_CreateFcn(hObject, eventdata, handles)%#ok<DEFNU>
+% hObject    handle to editBatteryVolts (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over pushbuttonStop.
+%function pushbuttonStop_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to pushbuttonStop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
