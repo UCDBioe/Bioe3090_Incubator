@@ -107,8 +107,8 @@ function Plot_Serial_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INU
     % Choose default command line output for Plot_Serial
     handles.output = hObject;
     
-    %handles.temperatureInsideBuffer = zeros(10,1);
-    %handles.temperatureSetpointBuffer = zeros(size(handles.temperatureInsideBuffer));
+    handles.temperatureInsideBuffer = zeros(10,1);
+    handles.temperatureSetpointBuffer = zeros(size(handles.temperatureInsideBuffer));
     
     % Update handles structure
     guidata(hObject, handles);
@@ -191,6 +191,8 @@ end
 
 %%
 function usbChoice = choose_usb_dialog()
+    % Creates Popup to select serial port from drop-down list. 
+    % Returns the usb selection as a string, usbChoice.
 
     % Get the list of available ports connected to the computer
     ports = cellstr(seriallist);
@@ -238,8 +240,8 @@ end
 
 %%
 function[obj,flag] = setup_serial(comPort, hObject, handles)
-  % It accept as the entry value, the index of the serial port
-  % Arduino is connected to, and as output values it returns the serial 
+  % SETUP_SERIAL accepts the string of the serial port Arduino is connected 
+  % to (comPort), and as output values it returns the serial 
   % element obj and a flag value used to check if when the script is compiled
   % the serial element exists yet.
   flag = 1;
@@ -266,10 +268,12 @@ end
 
 
 function instrcallback(serialObj, event, hObject, handles)
-    % This is a callback function, so the state of the handles is the same
-    %  state as when this function was first called. This also means that 
-    %  handles cannot be updated from this method so guidata(hObject,
-    %  handles) will not work here.
+    %  INSTRCALLBACK - callback for serial.BytesAvailableFunction 
+    %  This gets called whenever new data is available on the serial port.
+    %  This is a callback function, so the state of the handles is the same
+    %  state as when this function was first called. Handles is passed as 
+    %  copy. This also means that handles cannot be updated from this 
+    %  method so guidata(hObject, handles) will not work here.
     global temperatureInsideBuffer;
     global temperatureOutsideBuffer;
     global temperatureSetpointBuffer;
@@ -503,14 +507,16 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 end
 
-
 function save_data(tIn,tOut,tSP,pid,time,volts)
+% Save data to the open csv file. This file is opened in 
+% PBfile_Callback function.
 global dataFile;
 dlmwrite(dataFile,[tIn,tOut,tSP,pid,time,volts], '-append')
 end
 
-% --- Create file and open fid for saving data to disk.
 function PBfile_Callback(hObject, eventdata, handles)%#ok<DEFNU>
+% Create file and open fid for saving data to disk.
+%
 % hObject    handle to PBfile (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)

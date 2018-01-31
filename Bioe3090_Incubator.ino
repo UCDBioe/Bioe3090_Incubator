@@ -36,7 +36,7 @@ double pVal = 20, iVal = 5, dVal = 1;
 // variables passed by reference as outlined in the class.
 PID heaterPID(&heaterInput, &heaterOutput, &heaterSetpoint,pVal, iVal, dVal, DIRECT);
 
-// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+// Setup a oneWire instance to communicate with any OneWire device (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
 
 // Pass our oneWire reference to Dallas Temperature. 
