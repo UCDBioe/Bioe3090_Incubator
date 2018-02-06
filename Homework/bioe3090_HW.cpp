@@ -83,16 +83,27 @@ double array_average(double _tmpArr[], int _arrSize)
 // Calculate the mean of the array _tmpArr
 {
   // STUDENT COMPLETE THIS SECTION  >> -- HWS2----
+  // The array_average function is defined here, you need to
+  // complete the body of the function.
   // hint: maybe a sum and a division here...
   // STUDENT COMPLETE THIS SECTION  << -- HWS2----
 }
 
 void push_array(double _arr[], int _arrSize, double newVal)
+// This function shifts the elements of a array (_arr[]) to the left
+// one position and replaces the rightmost element with a new value
+// (newVal)
+//
+// Incomming array _arr[] = [1,2,3,4]
+// Returned array  _arr[] = [2,3,4,newVal]
+//
 // Shift array elements to the left one position, replace the last
 // element with newVal. Arrays are passed by reference, so no need
 // to return anything.
 {
   // STUDENT COMPLETE THIS SECTION  >> -- HWS3----
+  // The array_average function is defined here, you need to
+  // complete the body of the function.
   // hint: a couple of ways to do this, could use a loop here? 
   // STUDENT COMPLETE THIS SECTION  << -- HWS3----
 }
@@ -105,6 +116,7 @@ void print_array(double _tmpArr[], double _battArr[], int _arrSize)
   while (ind<_arrSize){
     // STUDENT COMPLETE THIS SECTION  >> -- HWS1----
     // hint: the code here produces ugly, un-aligned, output. How could you make it look better? printf? 
+    // Replace the line below with something that produces a cleaner output.
     cout << "Temp Value: " << _tmpArr[ind] << ", Battery Voltage: " << _battArr[ind] << ", Index: " << ind << "\n"; 
     // STUDENT COMPLETE THIS SECTION  << -- HWS1----
 
@@ -123,6 +135,8 @@ bool safe_val_chk(double _tempArr[], double _arrSize, double _setpoint, bool _tr
 {
   bool shutdownCondition = false;
   // STUDENT COMPLETE THIS SECTION  >> -- HWS4----
+  // The array_average function is defined here, you need to
+  // complete the body of the function.
   // hint: this function should do what the function docstring details. It should return a 1 if the alarm
   // condition is met. High or Low alarm is set using the _trigger.
   // STUDENT COMPLETE THIS SECTION  << -- HWS4----
@@ -194,9 +208,8 @@ int main()
 
   print_array(tempVals, battVals, tempArraySize);
   double tempAverage = array_average(tempVals, tempArraySize);
-  // STUDENT COMPLETE THIS SECTION  >> -- HWS1----
+
   cout << "Average Temperature: " << tempAverage << "\n\n";
-  // STUDENT COMPLETE THIS SECTION  << -- HWS1----
   // << Allocate Buffers << -------------------------------------------
 
 
