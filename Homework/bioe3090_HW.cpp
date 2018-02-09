@@ -102,8 +102,7 @@ void push_array(double _arr[], int _arrSize, double newVal)
 // to return anything.
 {
   // STUDENT COMPLETE THIS SECTION  >> -- HWS3----
-  // The array_average function is defined here, you need to
-  // complete the body of the function.
+  // You need to complete the body of the function.
   // hint: a couple of ways to do this, could use a loop here? 
   // STUDENT COMPLETE THIS SECTION  << -- HWS3----
 }
@@ -135,8 +134,7 @@ bool safe_val_chk(double _tempArr[], double _arrSize, double _setpoint, bool _tr
 {
   bool shutdownCondition = false;
   // STUDENT COMPLETE THIS SECTION  >> -- HWS4----
-  // The array_average function is defined here, you need to
-  // complete the body of the function.
+  // You need to complete the body of the function.
   // hint: this function should do what the function docstring details. It should return a 1 if the alarm
   // condition is met. High or Low alarm is set using the _trigger.
   // STUDENT COMPLETE THIS SECTION  << -- HWS4----
