@@ -12,6 +12,7 @@
  *
  */
 
+#include "stdafx.h"
 #include<iostream>
 #include <string>
 #include <cstdlib>
@@ -87,6 +88,7 @@ double array_average(double _tmpArr[], int _arrSize)
   // complete the body of the function.
   // hint: maybe a sum and a division here...
   // STUDENT COMPLETE THIS SECTION  << -- HWS2----
+	return 0;
 }
 
 void push_array(double _arr[], int _arrSize, double newVal)
@@ -253,5 +255,6 @@ int main()
   cout << "-----------------------------------------------------\n";
   cout << "-----------------------------------------------------\n";
 
+  return 0;
 
 }
